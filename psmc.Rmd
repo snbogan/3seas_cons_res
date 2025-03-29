@@ -1,0 +1,277 @@
+---
+title: "psmc and Ne"
+author: "Sam Bogan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ape)
+library(vcfR)
+library(psmcr)
+library(tidyverse)
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{bash}
+
+module load bcftools
+
+bcftools index Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf.gz
+
+bcftools query -l Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf.gz | wc -l
+
+```
+
+```{bash}
+
+salloc --account=pi-jkoc --partition=lab-colibri --qos=pi-jkoc --ntasks=1 --cpus-per-task=8 --mem=30 --time=012:00:00
+
+module load r
+
+R
+
+```
+
+psmcr full first test
+
+```{bash}
+
+#!/bin/bash
+#SBATCH --account=pi-jkoc
+#SBATCH --partition=lab-colibri
+#SBATCH --qos=pi-jkoc
+#SBATCH --job-name=psmcr_test
+#SBATCH --output=outpsmcr_test.out
+#SBATCH --error=psmcr_test.err
+#SBATCH --time=3-00:00:00
+#SBATCH --mail-user=snbogan@ucsc.edu
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=ALL
+#SBATCH --mem=30G
+#SBATCH --cpus-per-task=8
+
+# Load necessary modules (modify as needed)
+module load r
+
+# Setwd
+cd /hb/home/snbogan/3seas/data/vcf
+
+# Set paths
+VCF_FILE="Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf.gz"
+REF_GENOME="/hb/home/snbogan/3seas/data/genome/assembly/Zmarina_668_v2.0.fa"  # Change to your reference genome
+OUTPUT_DNABIN="output_dnabin.rds"
+R_SCRIPT="run_vcf2dnabin.R"
+
+# Create an R script to run VCF2DNAbin and psmcr
+cat > $R_SCRIPT <<EOF
+library(psmcr)
+
+# Convert VCF to DNAbin
+dnabin_obj <- VCF2DNAbin("$VCF_FILE",
+                         refgenome="$REF_GENOME",
+                         individual = 1)
+
+# Save DNAbin object
+saveRDS(dnabin_obj, file="$OUTPUT_DNABIN")
+
+# Run psmcr on the DNAbin object
+psmcr_results <- psmc(dnabin_obj, niters = 5, B = 10, mc.cores = 8)
+
+# Save results
+saveRDS(psmcr_results, file="psmcr_results.rds")
+EOF
+
+# Run the R script
+Rscript $R_SCRIPT
+
+```
+
+Import and plot results
+
+```{r}
+
+BBCC02_psmc <- readRDS("psmcr_results.rds")
+
+plot(BBCC02_psmc)
+
+T_psmc <- readRDS("data/vcf/psmcr_resultst.rds")
+
+plot(T_psmc)
+
+```
+
+```{r}
+
+plot_combined_psmc <- function(
+    x1,  # BBCC02_psmc (will be blue)
+    x2,  # T_psmc (will be red)
+    type = "step", 
+    xlim = NULL, 
+    ylim = NULL,
+    xlab = "Generations from present", 
+    ylab = "Ne",
+    show_present = TRUE, 
+    mutation_rate = 1e-8, 
+    generation_time = 1,
+    scaled = FALSE, 
+    bin_size = 100,
+    show_bootstrap = TRUE,
+    bootstrap_alpha = 0.2,
+    line_size = 1.5,
+    ...
+) {
+    # Process first PSMC (BBCC02 - blue)
+    RS1 <- x1$RS[x1$RS[, "iter"] == x1$niters, ]
+    theta0_1 <- x1$parameters[nrow(x1$parameters), "theta0"]
+    
+    if (scaled) {
+        xx1 <- RS1[, "t_k"] / (theta0_1 * bin_size)
+        yy1 <- theta0_1 * RS1[, "lambda_k"] / bin_size
+    } else {
+        denom <- 4 * mutation_rate * generation_time * bin_size
+        N0_1 <- theta0_1 / denom
+        xx1 <- 2 * N0_1 * RS1[, "t_k"]
+        yy1 <- N0_1 * RS1[, "lambda_k"]
+    }
+    
+    df_main1 <- data.frame(time = xx1, Ne = yy1, group = "BBCC02")
+    
+    # Process second PSMC (T - red)
+    RS2 <- x2$RS[x2$RS[, "iter"] == x2$niters, ]
+    theta0_2 <- x2$parameters[nrow(x2$parameters), "theta0"]
+    
+    if (scaled) {
+        xx2 <- RS2[, "t_k"] / (theta0_2 * bin_size)
+        yy2 <- theta0_2 * RS2[, "lambda_k"] / bin_size
+    } else {
+        denom <- 4 * mutation_rate * generation_time * bin_size
+        N0_2 <- theta0_2 / denom
+        xx2 <- 2 * N0_2 * RS2[, "t_k"]
+        yy2 <- N0_2 * RS2[, "lambda_k"]
+    }
+    
+    df_main2 <- data.frame(time = xx2, Ne = yy2, group = "T")
+    
+    # Combine main trajectories
+    df_main <- rbind(df_main1, df_main2)
+    
+    # Create base plot
+    p <- ggplot(df_main, aes(x = time, y = Ne, color = group)) +
+        geom_step(aes(group = group), 
+                 linewidth = line_size,
+                 linetype = "solid") +
+        scale_color_manual(values = c("BBCC02" = "blue", "T" = "red")) +
+        labs(x = xlab, y = ylab, color = "Group") +
+        theme_classic() +
+        theme(legend.position = "top")
+    
+    # Add bootstrap trajectories if available
+    if (show_bootstrap) {
+        # Process bootstrap for first PSMC
+        if (!is.null(x1$bootstrap)) {
+            boot1 <- x1$bootstrap
+            THETA0_1 <- rep(boot1$theta0, each = x1$n)
+            
+            if (scaled) {
+                Tk_boot1 <- boot1$tk / (THETA0_1 * bin_size)
+                Nk_boot1 <- THETA0_1 * boot1$lk / bin_size
+            } else {
+                denom <- 4 * mutation_rate * generation_time * bin_size
+                N0_boot1 <- boot1$theta0 / denom
+                Tk_boot1 <- 2 * N0_boot1 * boot1$tk
+                Nk_boot1 <- N0_boot1 * boot1$lk
+            }
+            
+            df_boot1 <- data.frame(
+                time = as.vector(Tk_boot1),
+                Ne = as.vector(Nk_boot1),
+                rep = rep(1:ncol(Tk_boot1), each = nrow(Tk_boot1)),
+                group = "BBCC02"
+            )
+            
+            p <- p + 
+                geom_step(data = df_boot1, 
+                         aes(group = interaction(rep, group)),
+                         color = "lightblue",
+                         alpha = bootstrap_alpha,
+                         linewidth = line_size * 0.7)
+        }
+        
+        # Process bootstrap for second PSMC
+        if (!is.null(x2$bootstrap)) {
+            boot2 <- x2$bootstrap
+            THETA0_2 <- rep(boot2$theta0, each = x2$n)
+            
+            if (scaled) {
+                Tk_boot2 <- boot2$tk / (THETA0_2 * bin_size)
+                Nk_boot2 <- THETA0_2 * boot2$lk / bin_size
+            } else {
+                denom <- 4 * mutation_rate * generation_time * bin_size
+                N0_boot2 <- boot2$theta0 / denom
+                Tk_boot2 <- 2 * N0_boot2 * boot2$tk
+                Nk_boot2 <- N0_boot2 * boot2$lk
+            }
+            
+            df_boot2 <- data.frame(
+                time = as.vector(Tk_boot2),
+                Ne = as.vector(Nk_boot2),
+                rep = rep(1:ncol(Tk_boot2), each = nrow(Tk_boot2)),
+                group = "T"
+            )
+            
+            p <- p + 
+                geom_step(data = df_boot2, 
+                         aes(group = interaction(rep, group)),
+                         color = "pink",
+                         alpha = bootstrap_alpha,
+                         linewidth = line_size * 0.7)
+        }
+    }
+    
+    # Add present time annotation
+    if (show_present) {
+        p <- p + 
+            annotate("text", x = 0, y = max(df_main$Ne) * 0.05, 
+                     label = "", fontface = "italic", hjust = 0)
+    }
+    
+    # Set axis limits
+    if (!is.null(xlim)) p <- p + xlim(xlim)
+    if (!is.null(ylim)) {
+        p <- p + ylim(ylim)
+    } else {
+        y_max <- max(df_main$Ne)
+        if (show_bootstrap) {
+            if (!is.null(x1$bootstrap)) y_max <- max(y_max, df_boot1$Ne)
+            if (!is.null(x2$bootstrap)) y_max <- max(y_max, df_boot2$Ne)
+        }
+        p <- p + expand_limits(y = c(0, y_max * 1.05))
+    }
+    
+    return(p)
+}
+
+plot_combined_psmc(BBCC02_psmc, T_psmc)
+
+BBCC02_psmc$bootstrap
+
+```
+
+Estimate Ne
+
+```{bash}
+
+vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --ld-window-bp 50000 --geno-r2 --out ld_output
+
+```
+
+
