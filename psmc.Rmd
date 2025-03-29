@@ -274,4 +274,22 @@ vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --ld-window-bp 50000 
 
 ```
 
+```{r}
+
+# Load LD data from vcftools output
+ld_data <- read.table("ld_output.geno.ld", header = TRUE)
+
+# Specify a recombination rate (e.g., human: 1e-8 per base pair, adjust for your species)
+recomb_rate <- 1e-8  
+
+# Compute Ne for each pairwise SNP comparison
+ld_data <- ld_data %>%
+  filter(R2 > 0) %>%  # Exclude negative or zero r² values
+  mutate(Ne = (1 - R2) / (4 * recomb_rate * R2))
+
+# Compute median or mean Ne as the final estimate
+Ne_estimate <- median(ld_data$Ne, na.rm = TRUE)
+
+```
+
 
