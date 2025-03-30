@@ -169,6 +169,7 @@ plot_combined_psmc <- function(
         geom_step(aes(group = group), 
                  linewidth = line_size,
                  linetype = "solid") +
+      geom_hline(yintercept = 32.8377623348743, lty = 2) +
         scale_color_manual(values = c("BBCC02" = "blue", "T" = "red")) +
         labs(x = xlab, y = ylab, color = "Group") +
         theme_classic() +
@@ -296,6 +297,9 @@ vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --ld-window-bp 50000 
 # Calc maf
 vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --freq --out maf_output
 
+# Calc het and inbreeding in each individual
+vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --het --out output_het
+
 # Step 2: Process outputs with R (with robust MAF handling)
 cat > calculate_Ne.R << 'EOF'
 #!/usr/bin/env Rscript
@@ -380,6 +384,43 @@ echo "Ne estimation complete. Results saved to Ne_estimation_results.txt"
 
 ```
 
+Inbreeding coefficient using vcftools
+
+```{r}
+
+het_df <- read.table("data/vcf/output_het.het", header = TRUE)
+
+# Create Tomales and Bodega Bay variables
+het_df$Pop <- ifelse(grepl("^B_", het_df[[1]]), "BB",
+                   ifelse(grepl("^T_", het_df[[1]]), "TB", NA))
+
+# Plot of F
+ggplot(data = het_df,
+       aes(x = F)) +
+  geom_histogram(color = "black", fill = "gray") +
+  geom_vline(xintercept = 0, lty = 2, color = "red") +
+  theme_classic() +
+  facet_wrap(~Pop) +
+  labs(y = "Individuals", x = "F (inbreeding coefficient)")
+
+
+# What percent of samples had positive inbreeding coefficients?
+nrow(filter(het_df, F > 0)) / nrow(het_df) * 100 # 38.46%
+
+# How many individuals have F >0.1 where fitness effects my start? 
+nrow(filter(het_df, F > .1)) # 6 individuals
+
+# Was there a difference in inbreeding between Tomales and Bodega Bay?
+nrow(filter(het_df, F > 0 & Pop == "BB")) / nrow(filter(het_df, Pop == "BB")) * 100 # BB = 29.41%
+nrow(filter(het_df, F > 0 & Pop == "TB")) / nrow(filter(het_df, Pop == "TB")) * 100 # BB = 43.86%
+
+43.86/29.41
+
+# Tomales Bay exhibited a 49% increase in positive inbreeding coefficients relative to Bodega Bay
+
+
+
+```
 
 
 
