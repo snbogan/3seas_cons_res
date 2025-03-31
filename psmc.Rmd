@@ -99,11 +99,11 @@ Import and plot results
 
 ```{r}
 
-BBCC02_psmc <- readRDS("psmcr_results.rds")
+BBCC02_psmc <- readRDS("psmcr_results_small_b.rds")
 
 plot(BBCC02_psmc)
 
-T_psmc <- readRDS("data/vcf/psmcr_resultst.rds")
+T_psmc <- readRDS("psmcr_results_small_t.rds")
 
 plot(T_psmc)
 
@@ -265,6 +265,20 @@ plot_combined_psmc(BBCC02_psmc, T_psmc)
 
 ```
 
+Full-scale psmc (not for students)
+
+```{r}
+
+b_full <- readRDS("data/vcf/psmcr_results.rds")
+
+plot(b_full)
+
+t_full <- readRDS("data/vcf/psmcr_resultst.rds")
+
+plot(t_full)
+
+```
+
 Estimate Ne with vcftools
 
 ```{bash}
@@ -407,7 +421,7 @@ ggplot(data = het_df,
 # What percent of samples had positive inbreeding coefficients?
 nrow(filter(het_df, F > 0)) / nrow(het_df) * 100 # 38.46%
 
-# How many individuals have F >0.1 where fitness effects my start? 
+# How many individuals have F >0.1 where fitness costs my arise? 
 nrow(filter(het_df, F > .1)) # 6 individuals
 
 # Was there a difference in inbreeding between Tomales and Bodega Bay?
@@ -417,8 +431,6 @@ nrow(filter(het_df, F > 0 & Pop == "TB")) / nrow(filter(het_df, Pop == "TB")) * 
 43.86/29.41
 
 # Tomales Bay exhibited a 49% increase in positive inbreeding coefficients relative to Bodega Bay
-
-
 
 ```
 
