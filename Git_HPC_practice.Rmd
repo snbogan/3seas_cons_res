@@ -1,0 +1,133 @@
+---
+title: "Github and HPC basics"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Using git
+
+## Git through R Studio
+
+### Getting started
+
+1. Make a GitHub account
+2. Set up login key
+3. Log into your GitHub account in your terminal
+
+
+### Create an R Project that is version controlled with git
+
+1. Create a new repository on Github called 'crms_test' and include a README
+2. Copy the url to the repo
+3. Open R Studio > File > New Project > Version Controlled and enter repository name, url, and local directory
+4. Edit the README to say 'Hello world!'
+
+
+### Practice git commands in R Studio environment
+1. Open the R Project file for CRMS_test
+2. Hit the pull icon (down arrow)
+3. Stage the README.md file
+4. Hit the commit button (check mark), which will queue updates to push
+5. Write a commit message. For example, "Add text to README"
+6. Hit 'Push' to update the repository on GitHub
+7. Open the webpage for your Github repository
+
+
+## Git on the terminal
+1. Edit your README.md file again in R Studio to add text of your choosing
+2. Open Terminal
+3. Navigate to the repo then push your change using the code below:
+
+```{bash, eval = FALSE}
+# Navigate to your repo
+cd /path/to/my/repo
+
+# Always pull before you push!
+git pull
+
+# Stage you README
+git add README.md
+
+# Commit the change
+git commit -m "Push change from terminal"
+
+# Push the change
+git push
+
+```
+
+
+# Using the NU Explorer Cluster
+
+### Logging into Explorer (NU's instructional HPC)
+
+Open the terminal and enter the following command
+
+```{bash, eval = FALSE}
+# Log in using ssh
+ssh -Y [username]@login.explorer.neu.edu
+
+# Type and enter your password
+
+```
+
+
+Create a working directory for yourself
+
+```{bash, eval = FALSE}
+# Make new directory titled with your NU username
+mkdir /path/to/student/directories/[username]
+
+```
+
+
+Look at the SLURM queue to see what jobs are running
+
+```{bash, eval = FALSE}
+# Peak at queue
+squeue
+
+```
+
+
+Look at what software is preinstalled on Explorer
+
+```{bash, eval = FALSE}
+# Peak at software modules
+module spider
+
+```
+
+
+### Install software using a Conda environment
+
+Load conda, create a conda environment, activate, and install software. We'll install vcftools, which we will use in later modules. Vcftools is a software package for analyzing genotype data stored in variant calling format (vcf) files.
+
+
+```{bash, eval = FALSE}
+# From any directory, load conda
+module load miniconda3
+
+# Navigate to your home directory
+cd /path/to/home/directory
+
+# Create conda environment
+conda create --name vcftools # Respond yes to all prompts
+
+# Activate the new environment
+conda activate vcftools
+
+# Install vcf tools
+conda install bioconda::vcftools # Respond yes to all prompts
+
+# Deactivate environment after installation
+conda deactivate
+
+```
+
+
+### Write and submit a SLURM job
+
