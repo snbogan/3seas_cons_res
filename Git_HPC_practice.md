@@ -110,27 +110,6 @@ cd /home/[username]/crms/day2_test
 
 # Print a messge in a new file to confirm that this job ran
 echo "message of your choosing" > day2_test.txt
-
-#!/bin/bash
-#SBATCH --job-name=test # Give your job a name
-#SBATCH --output=test.out # Name a file to contain code outputs
-#SBATCH --error=test.err # Name a file to contain error messages
-#SBATCH --time=0-01:00:00 # Edit this parameter to specify a time
-#SBATCH --mail-user=snbogan@ucsc.edu # Add your email
-#SBATCH --ntasks=1 # Let's start with one task
-#SBATCH --ntasks-per-node=1 # Let's start with just one task per node
-#SBATCH --mail-type=ALL
-#SBATCH --mem=1G # How many gigabytes of memory does this job need?
-#SBATCH --cpus-per-task=1 # How many CPUs do you think this code needs?
-
-# Make a new directory
-mkdir /home/s.bogan/crms/day2_test
-
-# Navigate to that new directory
-cd /home/s.bogan/crms/day2_test
-
-# Print a messge in a new file to confirm that this job ran
-echo "Hello, world!" > day2_test.txt
 ```
 
 Create a new directory for code and store your script there
