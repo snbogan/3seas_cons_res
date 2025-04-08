@@ -69,7 +69,11 @@ cd /path/to/home/directory
 
 # Create conda environment
 conda create --name vcftools # Respond yes to all prompts
+```
 
+Close terminal and then log back in.
+
+``` bash
 # Activate the new environment
 conda activate vcftools
 
