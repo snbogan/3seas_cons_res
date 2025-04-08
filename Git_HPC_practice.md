@@ -17,6 +17,11 @@ ssh [username]@login.explorer.northeastern.edu
 # Type and enter your password (no text will show while this happens)
 ```
 
+For PC users, try the command above. If it does not work, use the
+computer lab iMac in the meantime. Afterward, try downloading the
+[Windows Subsystem Linux
+(WSL)](https://learn.microsoft.com/en-us/windows/wsl/install).
+
 Create a working directory for yourself
 
 ``` bash
