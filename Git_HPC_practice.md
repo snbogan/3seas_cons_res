@@ -1,20 +1,13 @@
----
-title: "Github and HPC basics"
-output: github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
+Github and HPC basics
+================
 
 # Part 1 - Using the Explorer Cluster
 
-### Logging into Explorer (NU's instructional HPC)
+### Logging into Explorer (NU’s instructional HPC)
 
 Open the terminal and enter the following command
 
-```{bash, eval = FALSE}
+``` bash
 
 ### For Mac
 # Log in using ssh
@@ -22,25 +15,20 @@ ssh [username]@login.explorer.northeastern.edu
 # type yes and hit enter if prompted
 
 # Type and enter your password (no text will show while this happens)
-
 ```
-
 
 Create a working directory for yourself
 
-```{bash, eval = FALSE}
+``` bash
 # Make new directory for our class
 mkdir crms
-
 ```
-
 
 Look at the SLURM queue to see what jobs are running
 
-```{bash, eval = FALSE}
+``` bash
 # Peak at queue
 squeue
-
 ```
 
 ### Load software modules
@@ -49,7 +37,7 @@ There are two ways to use software on Explorer: loading and installing
 
 Look at what software is preinstalled on Explorer and can be loaded
 
-```{bash, eval = FALSE}
+``` bash
 # Peak at software modules
 module avail
 
@@ -58,16 +46,16 @@ module load vcftools
 
 # Check that vcftools succesfully loaded
 vcftools --help
-
 ```
-
 
 ### Install software using a Conda environment
 
-Load conda, create a conda environment, activate, and install software. We'll install vcftools, which we will use in later modules. Vcftools is a software package for analyzing genotype data stored in variant calling format (vcf) files.
+Load conda, create a conda environment, activate, and install software.
+We’ll install vcftools, which we will use in later modules. Vcftools is
+a software package for analyzing genotype data stored in variant calling
+format (vcf) files.
 
-
-```{bash, eval = FALSE}
+``` bash
 # From any directory, load conda
 module load miniconda3
 
@@ -85,15 +73,13 @@ conda install bioconda::vcftools # Respond yes to all prompts
 
 # Deactivate environment after installation
 conda deactivate
-
 ```
-
 
 ### Write and submit a SLURM job
 
 Finish the job script below by completing the missing SBATCH headers.
 
-```{bash, eval = FALSE}
+``` bash
 
 #!/bin/bash
 #SBATCH --job-name=[name] # Give your job a name
@@ -136,12 +122,11 @@ cd /home/s.bogan/crms/day2_test
 
 # Print a messge in a new file to confirm that this job ran
 echo "Hello, world!" > day2_test.txt
-
 ```
 
 Create a new directory for code and store your script there
 
-```{bash, eval = FALSE}
+``` bash
 
 # In your crms directory, enter
 mkdir code
@@ -151,14 +136,12 @@ cd code
 
 # Then, create a new .sh file for the job above
 nano day2_test.sh
-
 ```
 
 Paste your edited script into the open nano editor.
 
-
-After pasting, press Ctrl+O to write (save) the file, then hit Enter to confirm the file name.
-
+After pasting, press Ctrl+O to write (save) the file, then hit Enter to
+confirm the file name.
 
 Press Ctrl+X to exit nano.
 
@@ -166,7 +149,7 @@ Press Ctrl+X to exit nano.
 
 Evaluate and queue your job to run using sbatch
 
-```{bash, eval = FALSE}
+``` bash
 # Take a peak at your new script
 cat day2_test.sh
 
@@ -175,17 +158,16 @@ sbatch day2_test.sh
 
 # Check if your job succesfully ran!
 cat /home/[username]/crms/day2_test/day2_test.txt
-
 ```
-
 
 # Part 2 - Using git
 
 Before beginning part 2 make sure you:
 
-1. Have a GitHub account
-2. Have R Studio installed
-3. Install Filezilla client (software for moving files between local and remote directories)
+1.  Have a GitHub account
+2.  Have R Studio installed
+3.  Install Filezilla client (software for moving files between local
+    and remote directories)
 
 [Install Filezilla client here](https://filezilla-project.org/)
 
@@ -193,35 +175,37 @@ Before beginning part 2 make sure you:
 
 ### Getting started
 
-1. Make a GitHub account
-2. Set up login key
-3. Log into your GitHub account in your terminal
-
+1.  Make a GitHub account
+2.  Set up login key
+3.  Log into your GitHub account in your terminal
 
 ### Create an R Project that is version controlled with git
 
-1. Create a new repository on Github called 'crms_test' and include a README
-2. Copy the url to the repo
-3. Open R Studio > File > New Project > Version Controlled and enter repository name, url, and local directory
-4. Edit the README to say 'Hello world!'
-
+1.  Create a new repository on Github called ‘crms_test’ and include a
+    README
+2.  Copy the url to the repo
+3.  Open R Studio \> File \> New Project \> Version Controlled and enter
+    repository name, url, and local directory
+4.  Edit the README to say ‘Hello world!’
 
 ### Practice git commands in R Studio environment
-1. Open the R Project file for CRMS_test
-2. Hit the pull icon (down arrow)
-3. Stage the README.md file
-4. Hit the commit button (check mark), which will queue updates to push
-5. Write a commit message. For example, "Add text to README"
-6. Hit 'Push' to update the repository on GitHub
-7. Open the webpage for your Github repository
 
+1.  Open the R Project file for CRMS_test
+2.  Hit the pull icon (down arrow)
+3.  Stage the README.md file
+4.  Hit the commit button (check mark), which will queue updates to push
+5.  Write a commit message. For example, “Add text to README”
+6.  Hit ‘Push’ to update the repository on GitHub
+7.  Open the webpage for your Github repository
 
 ## Git on the terminal
-1. Edit your README.md file again in R Studio to add text of your choosing
-2. Open Terminal
-3. Navigate to the repo then push your change using the code below:
 
-```{bash, eval = FALSE}
+1.  Edit your README.md file again in R Studio to add text of your
+    choosing
+2.  Open Terminal
+3.  Navigate to the repo then push your change using the code below:
+
+``` bash
 # Navigate to your repo
 cd /path/to/my/repo
 
@@ -236,5 +220,4 @@ git commit -m "Push change from terminal"
 
 # Push the change
 git push
-
 ```
