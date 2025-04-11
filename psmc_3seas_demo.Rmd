@@ -1,0 +1,194 @@
+---
+title: "remotes"
+author: "Sam Bogan"
+date: "2025-04-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+install.packages("remotes")
+
+library(remotes)
+
+remotes::install_github("emmanuelparadis/psmcr/psmcr") # This will take time
+
+q()
+
+```
+
+```{bash}
+
+#!/bin/bash
+#SBATCH --job-name=psmcr_exp_tst
+#SBATCH --output=psmcr_exp_tst.out
+#SBATCH --error=psmcr_exp_tst.err
+#SBATCH --time=0-03:00:00
+#SBATCH --mail-user=snbogan@ucsc.edu
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=ALL
+#SBATCH --mem=40G
+#SBATCH --cpus-per-task=8
+
+# Load necessary modules (modify as needed)
+module load r
+
+# Setwd
+cd /crms/psmc
+
+# Set paths
+VCF_FILE="/courses/EEMB5538.202530/data/Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf.gz"
+REF_GENOME="/course/EEMB5538.202530/data/Zmarina_668_v2.0.fa"
+OUTPUT_DNABIN="output_dnabin.rds"
+R_SCRIPT="run_vcf2dnabin.R"
+
+# Create an R script to run VCF2DNAbin and psmcr
+cat > $R_SCRIPT <<EOF
+library(psmcr)
+
+# Convert VCF to DNAbin
+dnabin_obj <- VCF2DNAbin("$VCF_FILE",
+                         refgenome="$REF_GENOME",
+                         individual = 1)
+
+# Save DNAbin object
+saveRDS(dnabin_obj, file="$OUTPUT_DNABIN")
+
+# Run psmcr on the DNAbin object
+psmcr_exp_results <- psmc(dnabin_obj, niters = 5, B = 30, mc.cores = 8)
+
+# Save results
+saveRDS(psmcr_exp_results, file="psmcr_exp_results.rds")
+EOF
+
+# Run the R script
+Rscript $R_SCRIPT
+
+```
+
+# Estimate Ne from sequence data
+
+```{bash}
+
+#!/bin/bash
+#SBATCH --account=pi-jkoc
+#SBATCH --partition=lab-colibri
+#SBATCH --qos=pi-jkoc
+#SBATCH --job-name=r_Ne
+#SBATCH --output=r_Ne.out
+#SBATCH --error=r_Ne.err
+#SBATCH --time=3-00:00:00
+#SBATCH --mail-user=snbogan@ucsc.edu
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=ALL
+#SBATCH --mem=80G
+#SBATCH --cpus-per-task=1
+
+# Load necessary modules (modify as needed)
+module load r
+module load vcftools
+
+# Setwd
+cd /hb/home/snbogan/3seas/data/vcf
+
+# Calc ld
+vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --ld-window-bp 50000 --geno-r2 --out ld_output
+
+# Calc maf
+vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --freq --out maf_output
+
+# Calc het and inbreeding in each individual
+vcftools --vcf Zm_TomBod_MAF01MM85INDM30_AllChr.recode.vcf --het --out output_het
+
+# Step 2: Process outputs with R (with robust MAF handling)
+cat > calculate_Ne.R << 'EOF'
+#!/usr/bin/env Rscript
+
+# Load required packages
+if (!require("data.table", quietly = TRUE)) {
+  install.packages("data.table", repos = "https://cloud.r-project.org")
+  library(data.table)
+}
+
+# Read and process LD data
+ld_data <- fread("ld_output.geno.ld", header = TRUE)
+
+# Identify the correct r² column
+r2_col <- if ("R.2" %in% names(ld_data)) {
+  "R.2"
+} else if ("R^2" %in% names(ld_data)) {
+  "R^2"
+} else {
+  names(ld_data)[grep("r2|R2", names(ld_data), ignore.case = TRUE)[1]]
+}
+
+if (is.na(r2_col)) {
+  stop("Could not find r² column in LD output file")
+}
+
+# Read and process MAF data with proper column handling
+maf_data <- fread("maf_output.frq", header = TRUE)
+
+# Print column names and first few rows for debugging
+cat("\nMAF file structure:\n")
+print(head(maf_data))
+
+# Identify MAF column - vcftools --freq typically has format:
+# CHROM   POS     N_ALLELES       N_CHR   {ALLELE:FREQ}
+# We need to extract the frequency of the minor allele
+if (ncol(maf_data) >= 5) {
+  # Extract frequency from the last column (format like "A:0.95" or "T:0.25")
+  maf_data[, MAF := as.numeric(gsub("^.*:", "", maf_data[[ncol(maf_data)]]))]
+} else {
+  stop("MAF file doesn't have expected format. Expected at least 5 columns.")
+}
+
+# Filter data
+ld_data_filtered <- ld_data[get(r2_col) > 0 & get(r2_col) < 1, ]
+maf_data_filtered <- maf_data[MAF > 0 & !is.na(MAF), ]
+
+# Calculate means
+mean_r2 <- mean(ld_data_filtered[[r2_col]], na.rm = TRUE)
+mean_maf <- mean(maf_data_filtered$MAF, na.rm = TRUE)
+
+# Estimate Ne
+distance_cM <- 50000 / 1e6  # 50kb ≈ 0.05 cM
+Ne_estimate <- 1 / (4 * mean_r2 * distance_cM)
+
+# Print results
+cat("\nEffective population size (Ne) estimation:\n")
+cat("Mean r² (excluding 0 & 1):", mean_r2, "\n")
+cat("Mean MAF (excluding 0):", mean_maf, "\n")
+cat("Estimated Ne (LD method):", round(Ne_estimate), "\n")
+
+# Save results
+fwrite(
+  data.table(
+    Mean_r2 = mean_r2,
+    Mean_MAF = mean_maf,
+    Ne_estimate = Ne_estimate,
+    N_SNPs_LD = nrow(ld_data_filtered),
+    N_SNPs_MAF = nrow(maf_data_filtered)
+  ),
+  "Ne_estimation_results.txt",
+  sep = "\t",
+  quote = FALSE
+)
+EOF
+
+# Run R script
+chmod +x calculate_Ne.R
+./calculate_Ne.R
+
+echo "Ne estimation complete. Results saved to Ne_estimation_results.txt"
+
+```
+
+
+
