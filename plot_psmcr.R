@@ -1,4 +1,3 @@
-# Plot psmcr function by Sam Bogan
 plot_combined_psmc <- function(
     x1,  # BBCC02_psmc (will be blue)
     x2,  # T_psmc (will be red)
@@ -8,8 +7,8 @@ plot_combined_psmc <- function(
     xlab = "Generations from present", 
     ylab = "Ne",
     show_present = TRUE, 
-    mutation_rate = , 
-    generation_time = ,
+    mutation_rate = 1e-8, 
+    generation_time = 1,
     scaled = FALSE, 
     bin_size = 100,
     show_bootstrap = TRUE,
@@ -52,12 +51,16 @@ plot_combined_psmc <- function(
   # Combine main trajectories
   df_main <- rbind(df_main1, df_main2)
   
+  # Calculate minimum effective population size
+  min_Ne <- min(df_main$Ne)
+  cat("Minimum Ne in data set:", min_Ne, "\n")
+  
   # Create base plot
   p <- ggplot(df_main, aes(x = time, y = Ne, color = group)) +
     geom_step(aes(group = group), 
               linewidth = line_size,
               linetype = "solid") +
-    geom_hline(yintercept = 32.8377623348743, lty = 2) +
+    geom_hline(yintercept = min_Ne, lty = 2) +
     scale_color_manual(values = c("BBCC02" = "blue", "T" = "red")) +
     labs(x = xlab, y = ylab, color = "Group") +
     theme_classic() +
