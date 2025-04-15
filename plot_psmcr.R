@@ -1,14 +1,14 @@
 plot_combined_psmc <- function(
-    x1,  # BBCC02_psmc (will be blue)
-    x2,  # T_psmc (will be red)
+    x1,  # will be blue
+    x2,  # will be red
     type = "step", 
     xlim = NULL, 
     ylim = NULL,
     xlab = "Generations from present", 
     ylab = "Ne",
     show_present = TRUE, 
-    mutation_rate = 1e-8, 
-    generation_time = 1,
+    mutation_rate = , 
+    generation_time = ,
     scaled = FALSE, 
     bin_size = 100,
     show_bootstrap = TRUE,
