@@ -1,6 +1,6 @@
 plot_combined_psmc <- function(
-    x1,  # will be blue
-    x2,  # will be red
+    x1,
+    x2,
     type = "step", 
     xlim = NULL, 
     ylim = NULL,
@@ -56,12 +56,11 @@ plot_combined_psmc <- function(
   cat("Minimum Ne in data set:", min_Ne, "\n")
   
   # Create base plot
-  p <- ggplot(df_main, aes(x = time, y = Ne, color = group)) +
+  p <- ggplot(df_main, aes(x = time, y = Ne)) +
     geom_step(aes(group = group), 
               linewidth = line_size,
               linetype = "solid") +
     geom_hline(yintercept = min_Ne, lty = 2) +
-    scale_color_manual(values = c("BBCC02" = "blue", "T" = "red")) +
     labs(x = xlab, y = ylab, color = "Group") +
     theme_classic() +
     theme(legend.position = "top")
